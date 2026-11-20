@@ -307,8 +307,8 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
       <p class="hint" id="clState">Aucune liste importée.</p>
       <button class="btn" type="button" id="clPick">Importer un fichier Excel ou CSV</button>
       <input id="clFile" type="file" accept=".xlsx,.xls,.csv,.txt,text/csv" hidden>
-      <button class="btn" type="button" id="clDel" hidden>Vider la liste</button>
-      <p class="hint">Colonnes attendues : Client, Adresse, CP, Ville, puis Contact, Tél et Mail pour l'intervention, puis Contact, Tél et Mail pour la facturation. Colonne facultative « Zone forfait » (un chiffre de 1 à 7) : elle remplit le déplacement. La liste reste sur ce téléphone.</p></div>
+      <button class="btn" type="button" id="clDel" hidden>Vider la liste et les tarifs</button>
+      <p class="hint">Colonnes attendues : Client, Adresse, CP, Ville, puis Contact, Tél et Mail pour l'intervention, puis Contact, Tél et Mail pour la facturation. Colonne facultative « Zone forfait » (un chiffre de 1 à 7) : elle remplit le déplacement. Sous la liste, le bloc « Tarifs Horaire Prestations » (taux horaires, forfaits de déplacement et phrase du minimum) est repris dans le PDF : modifie les prix dans Excel puis réimporte le fichier. La liste reste sur ce téléphone.</p></div>
     <div class="fld"><span class="lbl">Signature mémorisée</span><button class="btn" type="button" id="stSigDel">Supprimer ma signature mémorisée</button></div>
     <p class="hint">Les bons, la liste clients et les réglages sont gardés sur ce téléphone, dans ce navigateur. Si les données du navigateur sont effacées, ils disparaissent. Les PDF enregistrés restent la référence.</p>
   </div>
@@ -377,7 +377,7 @@ const blank = () => withNum({
   bcNum: '', autreTxt: '', arrivee: '', depart: '', zone: '', zoneAuto: false, qteDep: '',
   lignes: Array.from({ length: 5 }, () => ({ q: '', art: '', desc: '', serie: '' })),
   travaux: '', termine: '', reste: '', clientNom: '', sigClient: '',
-  sigTech: settings.sigTech || '', techNom: settings.tech || '', savedSnap: ''
+  sigTech: settings.sigTech || '', techNom: settings.tech || '', savedSnap: '', tarifsSnap: null
 });
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
 function merge(base, saved) {
@@ -497,15 +497,92 @@ function layoutObjet(r, text, w, maxLines) {
   }
 }
 const OBJ_PAD = 2;
+/* Tarifs repris du fichier clients importé (bloc « Tarifs Horaire Prestations »), en bas de la zone de description (hauteurs en mm) */
+const TR = { title: 5, rate: 4.7, gap: 1.2, zhead: 4.7, km: 4.7, prix: 6, nb: 5.2, min: 8.2 };
+const RATES_PER_ROW = 4, LABEL_W = 36;
+const tarifsOf = d => (d && d.tarifsSnap) || (clients && clients.tarifs) || null;
+const tarifRows = T => (T && T.rates ? Math.ceil(T.rates.length / RATES_PER_ROW) : 0);
+function tarifH(T) {
+  if (!T) return 0;
+  const rr = tarifRows(T), zf = T.zones && T.zones.length;
+  return TR.title + rr * TR.rate + (rr && zf ? TR.gap : 0) + (zf ? TR.zhead + TR.km + TR.prix + TR.nb : 0) + (T.min ? TR.min : 0);
+}
+const geoTravaux = T => { const c = C(0, 28, 11, 42), h = c.h - tarifH(T); return { x: c.x, y: c.y, w: c.w, h, tw: c.w - 5, th: h - 4 }; };
 const geo = {
   get objetW() { return 7 * CW - 2 * OBJ_PAD; },
-  get travaux() { const c = C(0, 28, 11, 42); return { w: c.w - 5, h: c.h - 4 }; },
   get reste() {
     const a = C(0, 45, 3, 48), r1 = C(0, 45, 3, 45), y0 = r1.y + r1.h / 2 + 9 * PT * 0.35;
     return { x: a.x + 1.8, w: a.w - 3.6, y0, h: a.y + a.h - 1.5 - y0 + 9 * PT * 0.9 };
   }
 };
 const resteFirst = r => { r.font(9, false); return r.width('Reste à faire :') + 1.5; };
+
+function drawTarifs(r, d, T, y0, K) {
+  const { INK, LAB, LINE, BAR, GREY } = K, RED = '#D4101E', TINT = '#FDECEE', X0 = MG, W = 12 * CW;
+  const box = (x, y, w, h, fill) => { r.strokeColor(LINE); r.lineWidth(0.25); r.dash(false); if (fill) { r.fillColor(fill); r.rect(x, y, w, h, 'FD'); } else r.rect(x, y, w, h, 'S'); };
+  // texte centré dans une cellule : la plus grande taille qui tient (sur 1 ligne, ou 2 si la cellule est assez haute)
+  const fit = (t, x, y, w, h, o) => {
+    t = String(t || '').trim(); if (!t) return;
+    const pad = o.pad == null ? 1.6 : o.pad;
+    let s = o.max;
+    for (;;) {
+      r.font(s, !!o.bold);
+      const pitch = s * PT * 1.15, lines = wrap(r, t, w - 2 * pad), cap = Math.max(1, Math.floor((h - 0.4) / pitch));
+      if (lines.length <= cap || s <= o.min) {
+        const shown = lines.slice(0, cap), al = o.align || 'center';
+        r.textColor(o.color || LAB);
+        shown.forEach((ln, i) => r.text(ln, al === 'left' ? x + pad : al === 'right' ? x + w - pad : x + w / 2, y + h / 2 + (i - (shown.length - 1) / 2) * pitch + s * PT * 0.35, al));
+        return;
+      }
+      s = Math.round((s - 0.25) * 100) / 100;
+    }
+  };
+  let y = y0;
+  box(X0, y, W, TR.title, BAR); fit(T.title || 'Tarifs Horaire Prestations :', X0, y, W, TR.title, { max: 9.5, min: 7, bold: true, color: '#ffffff' });
+  y += TR.title;
+
+  /* taux horaires : paires « métier / prix », 4 par ligne */
+  const rr = tarifRows(T), pw = W / RATES_PER_ROW, lw = pw * 0.6;
+  (T.rates || []).forEach(([lab, val], i) => {
+    const x = X0 + (i % RATES_PER_ROW) * pw, yy = y + Math.floor(i / RATES_PER_ROW) * TR.rate;
+    box(x, yy, lw, TR.rate, GREY); fit(lab, x, yy, lw, TR.rate, { max: 8, min: 6, align: 'left' });
+    box(x + lw, yy, pw - lw, TR.rate); fit(val, x + lw, yy, pw - lw, TR.rate, { max: 8.5, min: 6, bold: true, align: 'right' });
+  });
+  y += rr * TR.rate;
+
+  /* forfait de déplacement : une colonne par zone, la zone choisie sur le bon est mise en avant */
+  const zs = (T.zones || []).slice(0, 7), n = zs.length;
+  if (n) {
+    if (rr) y += TR.gap;
+    const hh = TR.zhead + TR.km + TR.prix, avail = W - LABEL_W, eq = avail / n;
+    const need = zs.map(z => { r.font(8, false); const a = r.width(z.km || ''); r.font(8, true); return Math.max(a, r.width(z.prix || ''), r.width(z.z || '')) + 3.4; });
+    const wide = need.map((v, i) => (v > eq ? i : -1)).filter(i => i >= 0), others = n - wide.length;
+    const share = others ? (avail - wide.reduce((a, i) => a + need[i], 0)) / others : 0;
+    const cw = wide.length && others && share >= eq * 0.85 ? need.map((v, i) => (v > eq ? v : share)) : Array(n).fill(eq);
+    const sel = Number(d.zone) >= 1 && Number(d.zone) <= n ? Number(d.zone) - 1 : -1;
+    box(X0, y, LABEL_W, hh, GREY); fit(T.forfaitLabel || 'Forfait Déplacement', X0, y, LABEL_W, hh, { max: 8.5, min: 6.5, bold: true });
+    box(X0, y + hh, LABEL_W, TR.nb, GREY); fit(T.nombreLabel || 'Nombre de Déplacement', X0, y + hh, LABEL_W, TR.nb, { max: 8, min: 6, bold: true });
+    let x = X0 + LABEL_W, selX = 0, selW = 0;
+    zs.forEach((z, i) => {
+      const on = i === sel, w = cw[i];
+      box(x, y, w, TR.zhead, on ? INK : GREY); fit(z.z, x, y, w, TR.zhead, { max: 8.5, min: 6.5, bold: true, color: on ? '#ffffff' : LAB });
+      box(x, y + TR.zhead, w, TR.km); fit(z.km, x, y + TR.zhead, w, TR.km, { max: 8, min: 6 });
+      box(x, y + TR.zhead + TR.km, w, TR.prix); fit(z.prix, x, y + TR.zhead + TR.km, w, TR.prix, { max: 8.5, min: 6, bold: true });
+      box(x, y + hh, w, TR.nb);
+      if (on) { selX = x; selW = w; if (String(d.qteDep || '').trim()) fit(String(d.qteDep).trim(), x, y + hh, w, TR.nb, { max: 9.5, min: 7, bold: true, color: INK }); }
+      x += w;
+    });
+    if (sel >= 0) { r.strokeColor(INK); r.lineWidth(0.7); r.dash(false); r.rect(selX, y, selW, hh + TR.nb, 'S'); }
+    y += hh + TR.nb;
+  }
+
+  /* phrase du minimum d'intervention : encadrée, en gras et en rouge SCE pour qu'elle ne passe pas inaperçue */
+  if (T.min) {
+    const by = y + 1, bh = TR.min - 2;
+    r.fillColor(TINT); r.strokeColor(RED); r.lineWidth(0.6); r.dash(false); r.rect(X0, by, W, bh, 'FD');
+    fit(T.min, X0, by, W, bh, { max: 11, min: 8, bold: true, color: RED, pad: 3 });
+  }
+}
 
 function drawBon(r, d) {
   const INK = '#14284b', LAB = '#222222', LINE = '#2b2b2b', BAR = '#666666', GREY = '#E7E7E7';
@@ -613,10 +690,12 @@ function drawBon(r, d) {
 
   /* Description des travaux */
   { const h = C(0, 27, 11, 27); box(h, BAR); r.font(10, true); r.textColor('#ffffff'); r.text('Description des travaux', h.x + h.w / 2, vc(h, 10), 'center'); }
-  c = C(0, 28, 11, 42); box(c);
-  { const g = geo.travaux, L = layoutBlock(r, d.travaux, g.w, g.h, { max: 9.5, min: 6.5 });
+  const T = tarifsOf(d), gt = geoTravaux(T);
+  c = { x: gt.x, y: gt.y, w: gt.w, h: gt.h }; box(c);
+  { const L = layoutBlock(r, d.travaux, gt.tw, gt.th, { max: 9.5, min: 6.5 });
     r.font(L.size, false); r.textColor(INK);
     L.lines.forEach((t, i) => r.text(t, c.x + 2.5, c.y + 2 + L.size * PT * 0.95 + i * L.pitch, 'left')); }
+  if (T) drawTarifs(r, d, T, gt.y + gt.h, { INK, LAB, LINE, BAR, GREY });
 
   /* Pied : travail terminé / signatures */
   c = C(0, 43, 3, 48); box(c);
@@ -704,7 +783,7 @@ function toDOM() {
 function checkFit() {
   const cv = document.createElement('canvas').getContext('2d'), r = canvasAdapter(cv, 4);
   const o = layoutObjet(r, S.objet, geo.objetW, 5);
-  const t = layoutBlock(r, S.travaux, geo.travaux.w, geo.travaux.h, { max: 9.5, min: 6.5 });
+  const gtv = geoTravaux(tarifsOf(S)), t = layoutBlock(r, S.travaux, gtv.tw, gtv.th, { max: 9.5, min: 6.5 });
   const g = geo.reste;
   const e = layoutBlock(r, S.reste, g.w, g.h, { max: 9, min: 6.5, first: resteFirst(r) });
   $('#wObjet').hidden = !o.over; $('#wTrav').hidden = !t.over; $('#wReste').hidden = !e.over;
@@ -843,9 +922,40 @@ function fmtTel(v) {
   if (/^0\d{9}$/.test(s)) s = s.replace(/(\d{2})(?=\d)/g, '$1 ');
   return s;
 }
-function parseClients(rows) {
-  const hi = rows.findIndex(r => r.some(c => nrm(c) === 'client'));
+// Bloc « Tarifs Horaire Prestations » : lu d'après son contenu (titre, taux par métier, forfaits par zone, phrase du minimum)
+function parseTarifs(rows) {
+  const cell = v => String(v == null ? '' : v).trim();
+  const t = { title: '', rates: [], forfaitLabel: '', zones: [], nombreLabel: '', min: '' };
+  let mode = 'rates', names = [], zoneCols = [], km = null, prix = null;
+  rows.forEach((raw, i) => {
+    const cells = raw.map(cell), filled = cells.filter(Boolean);
+    if (!filled.length) return;
+    const k0 = nrm(filled[0]);
+    if (i === 0) { t.title = filled[0]; return; }
+    if (/^minimum/.test(k0)) { t.min = filled[0]; return; }
+    if (/^forfait/.test(k0)) {
+      mode = 'forfait'; t.forfaitLabel = filled[0]; names = cells;
+      cells.forEach((v, j) => { if (j > 0 && v) zoneCols.push(j); });
+      return;
+    }
+    if (/^nombre/.test(k0)) { t.nombreLabel = filled[0]; mode = 'fin'; return; }
+    if (mode === 'rates') {
+      for (let j = 0; j < cells.length - 1; j++) {
+        if (/[A-Za-z\u00C0-\u00FF]/.test(cells[j]) && /\d/.test(cells[j + 1])) { t.rates.push([cells[j], cells[j + 1]]); j++; }
+      }
+    } else if (mode === 'forfait') { if (!km) km = cells; else if (!prix) prix = cells; }
+  });
+  zoneCols.forEach(j => t.zones.push({ z: names[j], km: km ? km[j] || '' : '', prix: prix ? prix[j] || '' : '' }));
+  return t.rates.length || t.zones.length ? t : null;
+}
+function parseClients(all) {
+  const hi = all.findIndex(r => r.some(c => nrm(c) === 'client'));
   if (hi < 0) throw Object.assign(new Error('noheader'), { code: 'noheader' });
+  // le bloc des tarifs (sous la liste) ne doit pas être pris pour des clients
+  const first = r => nrm(r.find(c => String(c).trim()) || '');
+  const ti = all.findIndex((r, i) => i > hi && /^tarifs?\b/.test(first(r)) && all.slice(i + 1, i + 9).some(x => /^forfait/.test(first(x))));
+  const rows = ti > hi ? all.slice(0, ti) : all;
+  const tarifs = ti > hi ? parseTarifs(all.slice(ti)) : null;
   const col = {}, seen = { contact: 0, tel: 0, mail: 0 };
   rows[hi].map(nrm).forEach((h, i) => {
     if (h === 'client' && col.nom == null) col.nom = i;
@@ -866,7 +976,7 @@ function parseClients(rows) {
     out.push([nom, g(r, 'adr'), cp, g(r, 'ville'), g(r, 'contact1'), fmtTel(g(r, 'tel1')), g(r, 'mail1'), g(r, 'contact2'), fmtTel(g(r, 'tel2')), g(r, 'mail2'), zoneOf(g(r, 'zone'))]);
   }
   if (!out.length) throw Object.assign(new Error('empty'), { code: 'empty' });
-  return out;
+  return { rows: out, tarifs };
 }
 const loadScript = src => new Promise((res, rej) => {
   if (window.XLSX) return res();
@@ -878,8 +988,9 @@ function updateClState() {
   if (!el) return;
   const d = new Date(clients.at || 0);
   const z = (clients.rows || []).filter(r => r[10]).length;
-  el.textContent = n ? `${n} client${n > 1 ? 's' : ''} chargé${n > 1 ? 's' : ''} (${z} avec une zone forfait), importés le ${fmtShort(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`)}.` : 'Aucune liste importée.';
-  el.className = 'hint'; $('#clDel').hidden = !n;
+  const T = clients.tarifs;
+  el.textContent = n ? `${n} client${n > 1 ? 's' : ''} chargé${n > 1 ? 's' : ''} (${z} avec une zone forfait), importés le ${fmtShort(`${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`)}. ${T ? `Tarifs importés : ${T.rates.length} taux horaires, ${T.zones.length} zones de déplacement.` : 'Aucun tarif trouvé dans ce fichier : le PDF sera sans tableau de tarifs.'}` : 'Aucune liste importée.';
+  el.className = n && !T ? 'hint warn' : 'hint'; $('#clDel').hidden = !n;
 }
 $('#clPick').addEventListener('click', () => $('#clFile').click());
 $('#clFile').addEventListener('change', async e => {
@@ -894,8 +1005,8 @@ $('#clFile').addEventListener('change', async e => {
       try { txt = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch (x) { txt = new TextDecoder('windows-1252').decode(buf); }
       wb = window.XLSX.read(txt.replace(/^\uFEFF/, ''), { type: 'string' });
     } else wb = window.XLSX.read(buf, { type: 'array' });
-    const rows = parseClients(window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false, blankrows: false }));
-    const next = { at: Date.now(), rows };
+    const parsed = parseClients(window.XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false, blankrows: false }));
+    const next = { at: Date.now(), rows: parsed.rows, tarifs: parsed.tarifs };
     if (!store.set(KEY.cli, next)) throw Object.assign(new Error('store'), { code: 'store' });
     clients = next; buildIndex(); updateClState();
   } catch (err) {
@@ -909,7 +1020,7 @@ $('#clFile').addEventListener('change', async e => {
   }
   e.target.value = '';
 });
-$('#clDel').addEventListener('click', () => { clients = { at: 0, rows: [] }; store.set(KEY.cli, clients); buildIndex(); updateClState(); });
+$('#clDel').addEventListener('click', () => { clients = { at: 0, rows: [], tarifs: null }; store.set(KEY.cli, clients); buildIndex(); updateClState(); });
 function applyClient(r, target) {
   const base = { nom: r[0], adr1: r[1], adr2: '', cp: r[2], ville: r[3] };
   const c1 = { contact: r[4], tel: r[5], mail: r[6] };
@@ -1025,7 +1136,7 @@ async function openPreview(note) {
   $('#pvWrap').classList.remove('zoom'); $('#btnZoom').textContent = 'Zoom';
   await renderPreview(); open('#dlgPrev');
   pdfP = buildPdf().catch(() => null); // le PDF est préparé pendant que l'aperçu est ouvert : le partage part tout de suite
-  if (note) say(note);
+  if (note) say(note); else if (!tarifsOf(S)) say('Les tarifs ne figurent pas sur ce PDF. Dans Réglages, importe ton fichier clients : il contient le bloc « Tarifs Horaire Prestations ».');
 }
 const getPdf = async () => { let b = null; if (pdfP) { try { b = await pdfP; } catch (e) { b = null; } } return b || buildPdf(); };
 $('#btnPrev').addEventListener('click', () => openPreview());
@@ -1073,6 +1184,7 @@ function errText(e) {
   return 'L\'opération n\'a pas pu aboutir' + (c ? ` (${c})` : '') + '.';
 }
 function commit(kind) {
+  if (!S.tarifsSnap && clients.tarifs) S.tarifsSnap = JSON.parse(JSON.stringify(clients.tarifs)); // prix en vigueur au moment du bon
   S.techNom = tech().techNom; S.savedSnap = core(S); store.set(KEY.draft, S);
   const prev = hist.find(h => h.id === S.id), entry = { ...JSON.parse(JSON.stringify(S)), savedAt: Date.now() };
   if (prev && prev.sentAt) entry.sentAt = prev.sentAt; // conservé pour les anciens bons marqués « envoyés »
