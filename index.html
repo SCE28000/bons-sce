@@ -285,8 +285,7 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
   </div>
   <div class="dlg-f">
     <div id="shareBox" hidden style="display:flex;flex-direction:column;gap:8px"><p class="hint" id="shareHint"></p>
-      <div class="addr" id="adCli" hidden><span id="adCliTxt"></span><button class="btn small" type="button" id="cpClient">Copier l'adresse</button></div>
-      <div class="addr" id="adObj"><span id="adObjTxt"></span><button class="btn small" type="button" id="cpObjet">Copier l'objet</button></div></div>
+      <div class="addr" id="adCli" hidden><span id="adCliTxt"></span><button class="btn small" type="button" id="cpClient">Copier</button></div></div>
     <button class="btn primary" type="button" id="btnShare" hidden>Envoyer avec ma messagerie</button>
     <div class="row"><button class="btn small" type="button" id="btnZoom">Zoom</button><button class="btn" type="button" id="btnSave">Enregistrer le PDF</button></div>
     <button class="btn" type="button" id="btnFinish" hidden>Terminer, nouveau bon</button>
@@ -1120,8 +1119,7 @@ function syncButtons() {
   $('#btnSave').classList.toggle('primary', !canShareFiles);
   $('#btnShare').hidden = !canShareFiles; $('#shareBox').hidden = !canShareFiles;
   $('#adCli').hidden = !c.length; $('#adCliTxt').textContent = c.length ? `Contact client : ${c.join(', ')}` : '';
-  $('#adObjTxt').textContent = 'Objet : ' + mailParts().subject;
-  $('#shareHint').textContent = (c.length ? 'Copie l\'adresse du contact client, puis touche « Envoyer avec ma messagerie ». ' : 'Touche « Envoyer avec ma messagerie ». ') + 'Si le mail s\'ouvre sans objet, reviens ici pour le copier.';
+  $('#shareHint').textContent = 'Le PDF est prêt (l\'objet et le texte aussi, selon ton appli mail). ' + (c.length ? 'Copie l\'adresse du contact client, colle-la dans le mail, puis touche « Envoyer ».' : 'Ajoute le destinataire dans le mail, puis touche « Envoyer ».');
 }
 const setBusy = b => { ['#btnSave', '#btnShare'].forEach(s => { $(s).disabled = b; }); };
 async function renderPreview() {
@@ -1201,7 +1199,7 @@ function mailHref() {
 function showAfter(kind) {
   const shared = kind === 'shared';
   $('#afterTitle').textContent = shared ? 'PDF transmis à ta messagerie' : 'PDF enregistré';
-  $('#afterText').textContent = shared ? 'Dans ton application mail, vérifie le destinataire et l\'objet, puis touche Envoyer. Objet vide ? Reviens ici, touche « Copier l\'objet » et colle-le. Si tu es sorti sans envoyer, relance « Envoyer avec ma messagerie ».' : 'Joins le fichier à ton e-mail pour l\'envoyer.';
+  $('#afterText').textContent = shared ? 'Dans ton application mail, vérifie le destinataire puis touche Envoyer. Si tu es sorti sans envoyer, relance « Envoyer avec ma messagerie ».' : 'Joins le fichier à ton e-mail pour l\'envoyer.';
   $('#mailBox').hidden = shared;
   $('#mailTo').value = settings.email || ''; $('#mailLink').href = mailHref();
   $('#after').hidden = false; $('#btnFinish').hidden = false;
@@ -1220,12 +1218,10 @@ async function run(kind) {
 $('#btnSave').addEventListener('click', () => run('save'));
 $('#btnShare').addEventListener('click', () => run('share'));
 async function copyTo(btn, text) {
-  const lab = btn.dataset.lab || (btn.dataset.lab = btn.textContent);
-  try { await navigator.clipboard.writeText(text); btn.textContent = 'Copié'; } catch (e) { btn.textContent = 'Non copié'; }
-  setTimeout(() => { btn.textContent = lab; }, 1500);
+  try { await navigator.clipboard.writeText(text); btn.textContent = 'Copiée'; } catch (e) { btn.textContent = 'Non copiée'; }
+  setTimeout(() => { btn.textContent = 'Copier'; }, 1500);
 }
 $('#cpClient').addEventListener('click', e => copyTo(e.currentTarget, clientMails().join('; ')));
-$('#cpObjet').addEventListener('click', e => copyTo(e.currentTarget, mailParts().subject));
 $('#mailTo').addEventListener('input', () => { settings.email = $('#mailTo').value; saveSettings(); $('#mailLink').href = mailHref(); });
 $('#copyMail').addEventListener('click', async () => {
   const v = $('#mailTo').value.trim(); if (!v) return;
