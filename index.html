@@ -258,7 +258,7 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     </div></section>
 
     <section class="sec"><h2>Signatures</h2><div class="sec-b">
-      <div class="fld" id="sigTech"><span class="lbl req">Initiales et signature du technicien</span>
+      <div class="fld" id="sigTech"><span class="lbl req">Nom et signature du technicien</span>
         <div class="sig-view" hidden><div class="paper"><img alt="Signature du technicien"></div><div class="sig-row"><button class="btn small sig-redo" type="button">Refaire</button></div></div>
         <div class="sig-edit"><canvas class="pad" aria-label="Zone de signature du technicien"></canvas>
           <div class="sig-row"><label class="check"><input type="checkbox" id="rememberSig" checked> Mémoriser ma signature</label><button class="btn small sig-clear" type="button">Effacer</button></div></div>
@@ -740,7 +740,7 @@ function drawBon(r, d) {
       r.image(src, ax + (aw - w) / 2, ay + (ah - h) / 2, w, h);
     }
   };
-  sigBox(4, 'Initiales et signature du technicien', d.techNom || '', d.sigTech);
+  sigBox(4, 'Nom et signature du technicien', d.techNom || '', d.sigTech);
   sigBox(8, 'Nom en majuscule et signature du client', String(d.clientNom || '').toUpperCase(), d.sigClient);
 }
 function durStr(a, b) {
