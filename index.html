@@ -25,7 +25,7 @@
   --line:#d3d6da; --line-strong:#aeb3b9; --field:#ffffff;
   --bar:#666b71; --bar-ink:#ffffff;
   --accent:#d4101e; --accent-ink:#ffffff; --accent-soft:#fdecee;
-  --ok:#1d7a46; --warn:#a35a00; --focus:#1a56db; --ink-blue:#14284b;
+  --ok:#1d7a46; --warn:#a35a00; --bad:#c0141f; --focus:#1a56db; --ink-blue:#14284b;
   --font-body:'Barlow',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
   --font-display:'Barlow Condensed','Arial Narrow',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;
 }
@@ -35,7 +35,7 @@
     --line:#33373d; --line-strong:#4a4f57; --field:#15171a;
     --bar:#3d4248; --bar-ink:#f2f3f4;
     --accent:#ff4a55; --accent-ink:#1a0407; --accent-soft:#3a1519;
-    --ok:#56c98b; --warn:#e8b04b; --focus:#7aa7ff; --ink-blue:#14284b;
+    --ok:#56c98b; --warn:#e8b04b; --bad:#ff8a8a; --focus:#7aa7ff; --ink-blue:#14284b;
     color-scheme:dark;
   }
 }
@@ -44,7 +44,7 @@
   --line:#33373d; --line-strong:#4a4f57; --field:#15171a;
   --bar:#3d4248; --bar-ink:#f2f3f4;
   --accent:#ff4a55; --accent-ink:#1a0407; --accent-soft:#3a1519;
-  --ok:#56c98b; --warn:#e8b04b; --focus:#7aa7ff; --ink-blue:#14284b;
+  --ok:#56c98b; --warn:#e8b04b; --bad:#ff8a8a; --focus:#7aa7ff; --ink-blue:#14284b;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -92,6 +92,12 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7}
 .addr{display:flex;gap:10px;align-items:center;justify-content:space-between}.addr span{min-width:0;overflow-wrap:anywhere;font-size:14px}
 .hint{margin:0;font-size:13px;color:var(--muted)}
 .hint.warn{color:var(--warn);font-weight:600}
+.req::after{content:"\00a0*";color:var(--bad);font-weight:700}
+.star-t{color:var(--bad)}
+.fld.miss>label,.fld.miss>.lbl,.fld.miss .lblrow label{color:var(--bad)}
+.fld.miss input,.fld.miss textarea,.fld.miss canvas.pad,.fld.miss .paper{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.fld.miss canvas.pad{border-style:solid}
+.fld.miss .zones{outline:2px solid var(--bad);outline-offset:3px;border-radius:4px}
 
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{position:relative;display:inline-flex;font:inherit;letter-spacing:0;text-transform:none;color:var(--ink)}
@@ -114,8 +120,8 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:.7}
 .art-n{grid-column:1/-1;font:600 13px var(--font-display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 
 .sig-view,.sig-edit{display:flex;flex-direction:column;gap:8px}
-.sig-view .paper{background:#fff;border:1px solid var(--line-strong);border-radius:4px;height:150px;display:grid;place-items:center;padding:6px}
-.sig-view img{max-height:100%;max-width:100%}
+.sig-view .paper{position:relative;background:#fff;border:1px solid var(--line-strong);border-radius:4px;height:170px;overflow:hidden}
+.sig-view img{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block;width:auto;height:auto;max-width:calc(100% - 12px);max-height:calc(100% - 12px)}
 canvas.pad{display:block;width:100%;height:170px;background:#fff;border:1px dashed var(--line-strong);border-radius:4px;touch-action:none;cursor:crosshair}
 .sig-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .check{display:flex;align-items:center;gap:8px;font:400 14px var(--font-body);letter-spacing:0;text-transform:none;color:var(--ink)}
@@ -153,11 +159,14 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
 .h-act{display:flex;gap:8px}
 .h-act .btn{flex:1}
 .empty{margin:0;padding:24px 8px;text-align:center;color:var(--muted)}
-.cf{width:min(92%,420px);height:auto;max-height:90%;margin:auto;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface)}
+.cf{width:min(92%,420px);height:fit-content;max-height:90%;margin:auto;border:1px solid var(--line-strong);border-radius:6px;background:var(--surface)}
 .cf form{padding:18px;display:flex;flex-direction:column;gap:14px}
 .cf h2{margin:0;font:700 22px var(--font-display);text-transform:uppercase}
 .cf p{margin:0}
 .cf .row{display:flex;gap:10px;justify-content:flex-end}
+.cf ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;max-height:60vh;overflow:auto}
+.cf li button{width:100%;min-height:44px;padding:0 12px;border:1px solid var(--line-strong);border-radius:4px;background:var(--field);font:500 15px var(--font-body);cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}
+.cf li button::after{content:"›";color:var(--muted);font-size:20px}
 @media (prefers-reduced-motion:no-preference){.btn,.chip span,.zone{transition:background-color .12s,border-color .12s}}
 .ac{position:relative}
 .sug{position:absolute;left:0;right:0;top:100%;z-index:20;margin:2px 0 0;padding:0;list-style:none;background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;box-shadow:0 8px 20px rgba(0,0,0,.22)}
@@ -187,6 +196,7 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     <button class="btn small" type="button" id="numAuto" hidden>Régénérer</button>
   </div>
   <p class="hint hint-num">Créé avec la date, le client et l'ordre du jour. Il se met à jour tout seul tant que tu ne le modifies pas.</p>
+  <p class="hint" id="reqNote">Les champs marqués d'une étoile <b class="star-t">*</b> sont obligatoires pour l'aperçu et le PDF.</p>
   <p class="state" id="state" role="status">Brouillon enregistré sur ce téléphone.</p>
 
   <form id="f" autocomplete="off" novalidate>
@@ -198,7 +208,7 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     </div></section>
 
     <section class="sec"><h2>Objet de la demande</h2><div class="sec-b">
-      <div class="fld"><label for="objet">Objet de la demande de l'intervention</label>
+      <div class="fld"><label for="objet" class="req">Objet de la demande de l'intervention</label>
         <textarea id="objet" data-bind="objet" maxlength="400" placeholder="Ex. Panne d'éclairage dans l'atelier, disjoncteur général qui saute"></textarea>
         <p class="hint warn" id="wObjet" hidden>Texte trop long pour le bon : la fin sera coupée.</p></div>
       <div class="fld"><span class="lbl">Intervention</span>
@@ -217,12 +227,12 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     <section class="sec"><h2>Prestation du technicien</h2><div class="sec-b">
       <div class="grid">
         <div class="fld span2"><label for="date">Date</label><input id="date" data-bind="date" type="date"></div>
-        <div class="fld"><div class="lblrow"><label for="arrivee">Arrivée</label><button class="now" type="button" data-now="arrivee">Maintenant</button></div><input id="arrivee" data-bind="arrivee" type="time"></div>
-        <div class="fld"><div class="lblrow"><label for="depart">Départ</label><button class="now" type="button" data-now="depart">Maintenant</button></div><input id="depart" data-bind="depart" type="time"></div>
+        <div class="fld"><div class="lblrow"><label for="arrivee" class="req">Arrivée</label><button class="now" type="button" data-now="arrivee">Maintenant</button></div><input id="arrivee" data-bind="arrivee" type="time"></div>
+        <div class="fld"><div class="lblrow"><label for="depart" class="req">Départ</label><button class="now" type="button" data-now="depart">Maintenant</button></div><input id="depart" data-bind="depart" type="time"></div>
         <div class="fld span2"><label for="duree">Durée</label><input id="duree" type="text" readonly tabindex="-1" placeholder="Calculée avec les heures"></div>
       </div>
-      <div class="fld"><span class="lbl">Déplacement, zone forfait</span><div class="zones" id="zones"></div></div>
-      <div class="fld"><label for="qteDep">Déplacement, quantité</label><input id="qteDep" data-bind="qteDep" type="text" inputmode="decimal"></div>
+      <div class="fld"><span class="lbl req">Déplacement, zone forfait</span><div class="zones" id="zones"></div></div>
+      <div class="fld"><label for="qteDep" class="req">Déplacement, quantité</label><input id="qteDep" data-bind="qteDep" type="text" inputmode="decimal"></div>
     </div></section>
 
     <section class="sec"><h2>Articles</h2><div class="sec-b">
@@ -231,7 +241,7 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     </div></section>
 
     <section class="sec"><h2>Description des travaux</h2><div class="sec-b">
-      <div class="fld"><label for="travaux">Travaux réalisés</label>
+      <div class="fld"><label for="travaux" class="req">Travaux réalisés</label>
         <textarea id="travaux" data-bind="travaux" style="min-height:200px" placeholder="Ex. Remplacement du disjoncteur différentiel 40 A, contrôle de l'isolement des circuits, remise en service."></textarea>
         <p class="hint warn" id="wTrav" hidden>Texte trop long pour le bon : la fin sera coupée.</p></div>
     </div></section>
@@ -248,13 +258,13 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     </div></section>
 
     <section class="sec"><h2>Signatures</h2><div class="sec-b">
-      <div class="fld" id="sigTech"><span class="lbl">Initiales et signature du technicien</span>
+      <div class="fld" id="sigTech"><span class="lbl req">Initiales et signature du technicien</span>
         <div class="sig-view" hidden><div class="paper"><img alt="Signature du technicien"></div><div class="sig-row"><button class="btn small sig-redo" type="button">Refaire</button></div></div>
         <div class="sig-edit"><canvas class="pad" aria-label="Zone de signature du technicien"></canvas>
           <div class="sig-row"><label class="check"><input type="checkbox" id="rememberSig" checked> Mémoriser ma signature</label><button class="btn small sig-clear" type="button">Effacer</button></div></div>
       </div>
       <div class="fld"><label for="clientNom">Nom du client, en majuscules</label><input id="clientNom" data-bind="clientNom" type="text" autocapitalize="characters" style="text-transform:uppercase" placeholder="Ex. MARTIN JEAN"></div>
-      <div class="fld" id="sigClient"><span class="lbl">Signature du client</span>
+      <div class="fld" id="sigClient"><span class="lbl req">Signature du client</span>
         <div class="sig-view" hidden><div class="paper"><img alt="Signature du client"></div><div class="sig-row"><button class="btn small sig-redo" type="button">Refaire</button></div></div>
         <div class="sig-edit"><canvas class="pad" aria-label="Zone de signature du client"></canvas>
           <div class="sig-row"><span class="hint">Le client signe avec le doigt.</span><button class="btn small sig-clear" type="button">Effacer</button></div></div>
@@ -313,6 +323,11 @@ ul.h-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;
     <p class="hint">Les bons, la liste clients et les réglages sont gardés sur ce téléphone, dans ce navigateur. Si les données du navigateur sont effacées, ils disparaissent. Les PDF enregistrés restent la référence.</p>
   </div>
 </div></dialog>
+
+<dialog class="cf" id="dlgMiss" aria-label="Bon incomplet"><form method="dialog">
+  <h2>Bon incomplet</h2><p id="missText"></p><ul id="missList"></ul>
+  <div class="row"><button class="btn primary" value="ok">Compléter</button></div>
+</form></dialog>
 
 <dialog class="cf" id="dlgConfirm"><form method="dialog">
   <h2 id="cfTitle"></h2><p id="cfText"></p>
@@ -374,9 +389,9 @@ const blank = () => withNum({
   id: uid(), num: '', numAuto: true, date: todayISO(),
   client: blankAddr(), fact: blankAddr(), objet: '',
   types: { offre: false, regie: false, bc: false, garantie: false, contrat: false, autre: false },
-  bcNum: '', autreTxt: '', arrivee: '', depart: '', zone: '', zoneAuto: false, qteDep: '',
+  bcNum: '', autreTxt: '', arrivee: '', depart: '', zone: '', zoneAuto: false, qteDep: '1',
   lignes: Array.from({ length: 5 }, () => ({ q: '', art: '', desc: '', serie: '' })),
-  travaux: '', termine: '', reste: '', clientNom: '', sigClient: '',
+  travaux: '', termine: '', reste: '', clientNom: '', nomAuto: false, sigClient: '',
   sigTech: settings.sigTech || '', techNom: settings.tech || '', savedSnap: '', tarifsSnap: null
 });
 const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
@@ -739,16 +754,16 @@ function durStr(a, b) {
 /* ---------- Formulaire ---------- */
 const getP = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
 const setP = (o, p, v) => { const ks = p.split('.'), last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
-const addrHTML = p => `<div class="grid">
-  <div class="fld span2 ac"><label for="${p}-nom">Client</label><input id="${p}-nom" data-bind="${p}.nom" type="text" autocomplete="off" placeholder="Ex. Boulangerie Martin"><ul class="sug" id="${p}-sug" role="listbox" hidden></ul></div>
-  <div class="fld span2"><label for="${p}-contact">Contact</label><input id="${p}-contact" data-bind="${p}.contact" type="text" placeholder="Personne présente sur place"></div>
+const addrHTML = p => { const rq = p === 'client' ? ' class="req"' : ''; return `<div class="grid">
+  <div class="fld span2 ac"><label for="${p}-nom"${rq}>Client</label><input id="${p}-nom" data-bind="${p}.nom" type="text" autocomplete="off" placeholder="Ex. Boulangerie Martin"><ul class="sug" id="${p}-sug" role="listbox" hidden></ul></div>
+  <div class="fld span2"><label for="${p}-contact"${rq}>Contact</label><input id="${p}-contact" data-bind="${p}.contact" type="text" placeholder="Personne présente sur place"></div>
   <div class="fld span2"><label for="${p}-adr1">Adresse</label><input id="${p}-adr1" data-bind="${p}.adr1" type="text" placeholder="12 rue des Lilas"></div>
   <div class="fld span2"><label for="${p}-adr2">Complément d'adresse</label><input id="${p}-adr2" data-bind="${p}.adr2" type="text"></div>
   <div class="g3"><div class="fld"><label for="${p}-cp">CP</label><input id="${p}-cp" data-bind="${p}.cp" type="text" inputmode="numeric" maxlength="5"></div>
   <div class="fld"><label for="${p}-ville">Ville</label><input id="${p}-ville" data-bind="${p}.ville" type="text"></div></div>
   <div class="fld"><label for="${p}-tel">Téléphone</label><input id="${p}-tel" data-bind="${p}.tel" type="tel" inputmode="tel"></div>
-  <div class="fld"><label for="${p}-mail">Mail</label><input id="${p}-mail" data-bind="${p}.mail" type="email" inputmode="email" autocapitalize="none" spellcheck="false"></div>
-</div>`;
+  <div class="fld"><label for="${p}-mail"${rq}>Mail</label><input id="${p}-mail" data-bind="${p}.mail" type="email" inputmode="email" autocapitalize="none" spellcheck="false"></div>
+</div>`; };
 $('#addr-client').innerHTML = addrHTML('client');
 $('#addr-fact').innerHTML = addrHTML('fact');
 $('#zones').innerHTML = [1, 2, 3, 4, 5, 6, 7].map(n => `<button type="button" class="zone" data-zone="${n}" aria-pressed="false">${n}</button>`).join('');
@@ -789,9 +804,10 @@ function checkFit() {
   $('#wObjet').hidden = !o.over; $('#wTrav').hidden = !t.over; $('#wReste').hidden = !e.over;
 }
 
-let saveT = 0;
+let saveT = 0, showMiss = false;
 const stateEl = $('#state');
 function onChange() {
+  if (showMiss) markMissing();
   $('#duree').value = durStr(S.arrivee, S.depart);
   checkFit();
   clearTimeout(saveT);
@@ -812,6 +828,8 @@ const onInput = e => {
   else setP(S, el.dataset.bind, el.value);
   if (el.dataset.bind === 'num') { S.numAuto = false; $('#numAuto').hidden = false; }
   else if (S.numAuto && (el.dataset.bind === 'date' || el.dataset.bind === 'client.nom')) refreshNum();
+  if (el.dataset.bind === 'clientNom') S.nomAuto = false;
+  else if (el.dataset.bind === 'client.contact' && syncNom()) $('#clientNom').value = S.clientNom;
   if (el.dataset.bind === 'types.bc') $('#subBc').classList.toggle('on', el.checked);
   if (el.dataset.bind === 'types.autre') $('#subAutre').classList.toggle('on', el.checked);
   if (el.dataset.bind.startsWith('lignes')) showArts();
@@ -1021,12 +1039,22 @@ $('#clFile').addEventListener('change', async e => {
   e.target.value = '';
 });
 $('#clDel').addEventListener('click', () => { clients = { at: 0, rows: [], tarifs: null }; store.set(KEY.cli, clients); buildIndex(); updateClState(); });
+/* Nom du signataire (champ « Nom du client, en majuscules ») : repris du contact d'intervention, sans « Mr », « Mme »… ;
+   il suit le contact tant que le technicien n'a pas écrit lui-même dans ce champ */
+const personName = v => String(v || '').replace(/\s+/g, ' ').trim().replace(/^(?:m|mr|mme|mlle|melle|monsieur|madame|mademoiselle)\b\.?\s+/i, '').trim().toUpperCase();
+function syncNom() {
+  if (String(S.clientNom || '').trim() && !S.nomAuto) return false;
+  const nm = personName(S.client && S.client.contact);
+  S.clientNom = nm; S.nomAuto = !!nm;
+  return true;
+}
 function applyClient(r, target) {
   const base = { nom: r[0], adr1: r[1], adr2: '', cp: r[2], ville: r[3] };
   const c1 = { contact: r[4], tel: r[5], mail: r[6] };
   const c2 = { contact: r[7] || r[4], tel: r[8] || r[5], mail: r[9] || r[6] };
   if (target === 'client') {
     S.client = { ...base, ...c1 }; S.fact = { ...base, ...c2 };
+    syncNom();
     const z = String(r[10] || '');
     if (z) { S.zone = z; S.zoneAuto = true; }
     else if (S.zoneAuto) { S.zone = ''; S.zoneAuto = false; }
@@ -1096,7 +1124,7 @@ $('#btnHist').addEventListener('click', () => { renderHist(); open('#dlgHist'); 
 
 /* ---------- Nouveau bon ---------- */
 function newBon() {
-  S = blank(); artShown = 2; toDOM(); sigT.reset(); sigC.reset(); store.set(KEY.draft, S);
+  S = blank(); artShown = 2; showMiss = false; toDOM(); sigT.reset(); sigC.reset(); store.set(KEY.draft, S); markMissing();
   stateEl.classList.remove('bad'); stateEl.textContent = 'Nouveau bon prêt.'; window.scrollTo(0, 0);
 }
 $('#btnNew').addEventListener('click', async () => {
@@ -1139,7 +1167,42 @@ async function openPreview(note) {
   if (note) say(note); else if (!tarifsOf(S)) say('Les tarifs ne figurent pas sur ce PDF. Dans Réglages, importe ton fichier clients : il contient le bloc « Tarifs Horaire Prestations ».');
 }
 const getPdf = async () => { let b = null; if (pdfP) { try { b = await pdfP; } catch (e) { b = null; } } return b || buildPdf(); };
-$('#btnPrev').addEventListener('click', () => openPreview());
+/* ---------- Champs obligatoires : sans eux, pas d'aperçu ni de PDF ---------- */
+const filled = v => String(v == null ? '' : v).trim() !== '';
+const REQUIRED = [
+  { sel: '#client-nom', lab: 'Adresse d\'intervention : client', ok: s => filled(s.client.nom) },
+  { sel: '#client-contact', lab: 'Adresse d\'intervention : contact', ok: s => filled(s.client.contact) },
+  { sel: '#client-mail', lab: 'Adresse d\'intervention : mail (adresse valide)', ok: s => mailList(s.client.mail).length > 0 },
+  { sel: '#objet', lab: 'Objet de la demande de l\'intervention', ok: s => filled(s.objet) },
+  { sel: '#arrivee', lab: 'Heure d\'arrivée', ok: s => filled(s.arrivee) },
+  { sel: '#depart', lab: 'Heure de départ', ok: s => filled(s.depart) },
+  { sel: '#zones', lab: 'Zone de déplacement (1 à 7)', ok: s => /^[1-7]$/.test(String(s.zone)) },
+  { sel: '#qteDep', lab: 'Quantité de déplacement', ok: s => parseFloat(String(s.qteDep).replace(',', '.')) > 0 },
+  { sel: '#travaux', lab: 'Description des travaux', ok: s => filled(s.travaux) },
+  { sel: '#sigTech', lab: 'Signature du technicien', ok: s => filled(s.sigTech) },
+  { sel: '#sigClient', lab: 'Signature du client', ok: s => filled(s.sigClient) }
+];
+const missing = () => REQUIRED.filter(r => !r.ok(S));
+function markMissing() {
+  $$('.fld.miss').forEach(e => e.classList.remove('miss'));
+  if (!showMiss) return;
+  missing().forEach(r => { const el = $(r.sel), f = el && el.closest('.fld'); if (f) f.classList.add('miss'); });
+}
+function goTo(sel) {
+  const el = $(sel), box = el && (el.closest('.fld') || el); if (!box) return;
+  box.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (/^(INPUT|TEXTAREA)$/.test(el.tagName)) { try { el.focus({ preventScroll: true }); } catch (e) {} }
+}
+function gate() {
+  const m = missing(); if (!m.length) return true;
+  showMiss = true; markMissing();
+  $('#missText').textContent = m.length === 1 ? 'Il manque 1 élément : sans lui, l\'aperçu et le PDF ne peuvent pas être validés.' : `Il manque ${m.length} éléments : sans eux, l'aperçu et le PDF ne peuvent pas être validés.`;
+  const ul = $('#missList'); ul.innerHTML = '';
+  m.forEach(r => { const li = document.createElement('li'), b = document.createElement('button'); b.type = 'button'; b.textContent = r.lab; b.addEventListener('click', () => { $('#dlgMiss').close(); goTo(r.sel); }); li.appendChild(b); ul.appendChild(li); });
+  $('#dlgMiss').addEventListener('close', () => { if ($('#dlgMiss').returnValue === 'ok') goTo(m[0].sel); }, { once: true });
+  $('#dlgMiss').returnValue = ''; open('#dlgMiss'); return false;
+}
+$('#btnPrev').addEventListener('click', () => { if (gate()) openPreview(); });
 $('#btnZoom').addEventListener('click', () => { const z = $('#pvWrap').classList.toggle('zoom'); $('#btnZoom').textContent = z ? 'Page entière' : 'Zoom'; });
 async function buildPdf() {
   if (!window.jspdf) throw Object.assign(new Error('jspdf'), { code: 'nolib' });
@@ -1206,6 +1269,7 @@ function showAfter(kind) {
   $('#after').scrollIntoView({ block: 'nearest' });
 }
 async function run(kind) {
+  if (missing().length) { say('Bon incomplet : ferme l\'aperçu et remplis les champs obligatoires (marqués d\'une étoile).'); return; }
   setBusy(true); say('');
   try {
     const blob = await getPdf(), name = fileName();
